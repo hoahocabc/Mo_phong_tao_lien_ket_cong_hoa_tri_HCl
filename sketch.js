@@ -2,7 +2,7 @@
 // Tác giả: Gemini
 
 let fontRegular;
-let playButton, resetButton, instructionsButton, overlapButton, sphereButton, labelButton;
+let playButton, resetButton, instructionsButton, overlapButton, sphereButton, labelButton, spinButton;
 let titleDiv, footerDiv, instructionsPopup;
 let atoms = [];
 let state = "idle";
@@ -16,12 +16,12 @@ let hSphereRotation = 0;
 let clSphereRotation = 0;
 let showLabels = true;
 let isSphereVisible = false;
+let isElectronSpinning = true;
 
 const hOuterRadius = 60;
 const clOuterRadius = 50 + 2 * 40;
 
 const initialShellGap = 200;
-// Đã thay đổi giá trị này để hai nguyên tử tiến lại gần nhau thêm 3px nữa
 const bondedShellOverlap = 18;
 const bondDistance = (hOuterRadius + clOuterRadius) - bondedShellOverlap;
 
@@ -82,17 +82,27 @@ function createUI() {
     }
   });
 
+  spinButton = createButton("Tắt quay electron");
+  styleButton(spinButton);
+  spinButton.mousePressed(() => {
+    isElectronSpinning = !isElectronSpinning;
+    if (isElectronSpinning) {
+      spinButton.html("Tắt quay electron");
+    } else {
+      spinButton.html("Bật quay electron");
+    }
+  });
+
   resetButton = createButton("↺ Reset");
   styleButton(resetButton);
   resetButton.mousePressed(() => {
-    resetSimulation();
+    window.location.reload();
   });
 
   overlapButton = createButton("Bật xen phủ");
   styleButton(overlapButton);
   overlapButton.mousePressed(() => {
     if (state === "done" || state === "overlap_spinning") {
-      // Nếu lớp cầu đang bật, tắt nó đi trước
       if (isSphereVisible) {
         isSphereVisible = false;
         sphereButton.html("Bật lớp cầu");
@@ -105,7 +115,6 @@ function createUI() {
   sphereButton = createButton("Bật lớp cầu");
   styleButton(sphereButton);
   sphereButton.mousePressed(() => {
-    // Nếu đám mây electron đang bật, tắt nó đi trước
     if (state === "overlap_spinning") {
       state = "done";
       overlapButton.html("Bật xen phủ");
@@ -156,6 +165,7 @@ function createUI() {
       <li style="margin-bottom: 10px;">• Nhấn nút "Reset" để quay lại trạng thái ban đầu.</li>
       <li style="margin-bottom: 10px;">• Nhấn nút "Bật xen phủ" để hiển thị đám mây electron liên kết.</li>
       <li style="margin-bottom: 10px;">• Nhấn nút "Bật lớp cầu" để hiển thị lớp electron hóa trị dưới dạng mặt cầu.</li>
+      <li style="margin-bottom: 10px;">• Nhấn nút **"Bật/Tắt quay electron"** để dừng hoặc tiếp tục chuyển động quay của các electron.</li>
       <li style="margin-bottom: 10px;">• Nhấn nút "Bật/Tắt nhãn" để hiển thị hoặc ẩn nhãn tên nguyên tử.</li>
     </ul>
     <button id="closePopup" style="display: block; width: 100%; padding: 10px; margin-top: 20px; font-size: 16px; border: none; border-radius: 6px; background-color: #36d1dc; color: #fff; cursor: pointer;">Đóng</button>
@@ -170,7 +180,7 @@ function createUI() {
 }
 
 function styleButton(btn, isTransparent = false) {
-  btn.style("width", "80px");
+  btn.style("width", "120px");
   btn.style("height", "30px");
   btn.style("padding", "0px");
   btn.style("font-size", "12px");
@@ -186,12 +196,10 @@ function styleButton(btn, isTransparent = false) {
     btn.style("background", "rgba(0,0,0,0)");
     btn.style("border", "1px solid #fff");
   } else {
-    // Định nghĩa các màu gradient
     const defaultGradient = "linear-gradient(145deg, #6a82fb, #fc5c7d)";
     const hoverGradient = "linear-gradient(145deg, #fc5c7d, #6a82fb)";
     const pressGradient = "linear-gradient(145deg, #8a2be2, #00ffff)";
 
-    // Áp dụng các hiệu ứng
     btn.style("border", "none");
     btn.style("background", defaultGradient);
     btn.style("box-shadow", "3px 3px 6px rgba(0,0,0,0.4)");
@@ -209,27 +217,26 @@ function styleButton(btn, isTransparent = false) {
     });
 
     btn.mouseReleased(() => {
-      btn.style("background", hoverGradient); // Trở lại màu hover sau khi nhả chuột
+      btn.style("background", hoverGradient);
     });
   }
 }
 
 function positionButtons() {
   playButton.position(20, 20);
-  overlapButton.position(20, 60);
-  sphereButton.position(20, 100);
-  labelButton.position(20, 140);
-  // Nút Reset được chuyển lên trên nút Hướng dẫn
-  resetButton.position(20, 180);
-  instructionsButton.position(20, 220);
+  spinButton.position(20, 60);
+  overlapButton.position(20, 100);
+  sphereButton.position(20, 140);
+  labelButton.position(20, 180);
+  resetButton.position(20, 220);
+  instructionsButton.position(20, 260);
 }
 
 function resetSimulation() {
   atoms = [];
-  // Electron của Hydro màu trắng và Clo màu xanh lá cây
   atoms.push(new Atom(-initialDistance / 2, 0, "H", 1, [1], color(255, 255, 255)));
   atoms.push(new Atom(initialDistance / 2, 0, "Cl", 17, [2, 8, 7], color(0, 255, 0)));
-
+  
   state = "idle";
   progress = 0;
   bondingProgress = 0;
@@ -238,11 +245,14 @@ function resetSimulation() {
   clSphereRotation = 0;
   panX = 0;
   panY = 0;
-  overlapButton.html("Bật xen phủ");
-  sphereButton.html("Bật lớp cầu");
   isSphereVisible = false;
   showLabels = true;
+  isElectronSpinning = true;
+
+  overlapButton.html("Bật xen phủ");
+  sphereButton.html("Bật lớp cầu");
   labelButton.html("Tắt nhãn");
+  spinButton.html("Tắt quay electron");
 }
 
 function drawBillboardText(textStr, x, y, z, size) {
@@ -262,25 +272,22 @@ function drawLabels() {
   const clAtom = atoms.find(a => a.label === "Cl");
 
   push();
-  fill(255); // Màu trắng
+  fill(255);
   textSize(20);
   textAlign(CENTER, CENTER);
 
-  // Vị trí của nhãn
-  const hLabelY = hAtom.pos.y + hOuterRadius + 30; // 20 + 10 = 30px
-  const clLabelY = clAtom.pos.y + clOuterRadius + 30; // 20 + 10 = 30px
+  const hLabelY = hAtom.pos.y + hOuterRadius + 30;
+  const clLabelY = clAtom.pos.y + clOuterRadius + 30;
 
-  // Vẽ nhãn H
   push();
   translate(hAtom.pos.x, hLabelY, 0);
-  rotateX(PI); // Đảm bảo chữ quay đúng hướng
+  rotateX(PI);
   text("H", 0, 0);
   pop();
 
-  // Vẽ nhãn Cl
   push();
   translate(clAtom.pos.x, clLabelY, 0);
-  rotateX(PI); // Đảm bảo chữ quay đúng hướng
+  rotateX(PI);
   text("Cl", 0, 0);
   pop();
 
@@ -348,7 +355,7 @@ function draw() {
         atom.pos.x = clX;
       }
     });
-    cloudRotationAngle += fastSpinSpeed;
+    cloudRotationAngle += fastSpinSpeed * (isElectronSpinning ? 1 : 0);
   } else if (state === "done") {
     let hX = -bondDistance * (clOuterRadius / (hOuterRadius + clOuterRadius));
     let clX = bondDistance * (hOuterRadius / (hOuterRadius + clOuterRadius));
@@ -378,12 +385,11 @@ function draw() {
     pop();
   }
 
-  // Chỉ vẽ lớp cầu khi isSphereVisible là TRUE và ẩn đám mây
   if (isSphereVisible) {
     drawElectronSpheres();
-    hSphereRotation += sphereRotationSpeed;
-    clSphereRotation += sphereRotationSpeed;
-  } else if (state === "overlap_spinning") { // Ngược lại, chỉ vẽ đám mây khi lớp cầu tắt và trạng thái là overlap_spinning
+    hSphereRotation += sphereRotationSpeed * (isElectronSpinning ? 1 : 0);
+    clSphereRotation += sphereRotationSpeed * (isElectronSpinning ? 1 : 0);
+  } else if (state === "overlap_spinning") {
     drawElectronClouds();
   }
 
@@ -394,7 +400,6 @@ function drawElectronClouds() {
   const hAtom = atoms.find(a => a.label === "H");
   const clAtom = atoms.find(a => a.label === "Cl");
 
-  // Giảm đường kính lớp xen phủ
   const hOrbitalRadius = hOuterRadius - 4;
   const clOrbitalRadius = clOuterRadius - 4;
   const orbitalWidth = 11;
@@ -425,32 +430,28 @@ function drawElectronSpheres() {
   const hAtom = atoms.find(a => a.label === "H");
   const clAtom = atoms.find(a => a.label === "Cl");
 
-  // Lấy màu electron tương ứng
   let hColor = atoms.find(a => a.label === "H").electronCol;
   let clColor = atoms.find(a => a.label === "Cl").electronCol;
 
   const hOrbitalRadius = hOuterRadius + 6;
   const clOrbitalRadius = clOuterRadius + 6;
 
-  // Sử dụng giá trị cao nhất cho độ chi tiết mặt cầu
-  const sphereDetail = 40; 
+  const sphereDetail = 40;
 
-  // Vẽ mặt cầu Hydro
   push();
   translate(hAtom.pos.x, hAtom.pos.y, 0);
   rotateY(hSphereRotation);
-  noStroke(); // Bỏ đường lưới
-  fill(hColor); // Dùng màu electron của Hydro
-  sphere(hOrbitalRadius, sphereDetail, sphereDetail); // Tăng độ trơn nhẵn
+  noStroke();
+  fill(hColor);
+  sphere(hOrbitalRadius, sphereDetail, sphereDetail);
   pop();
 
-  // Vẽ mặt cầu Clo
   push();
   translate(clAtom.pos.x, clAtom.pos.y, 0);
   rotateY(clSphereRotation);
-  noStroke(); // Bỏ đường lưới
-  fill(clColor); // Dùng màu electron của Clo
-  sphere(clOrbitalRadius, sphereDetail, sphereDetail); // Tăng độ trơn nhẵn
+  noStroke();
+  fill(clColor);
+  sphere(clOrbitalRadius, sphereDetail, sphereDetail);
   pop();
 }
 
@@ -531,7 +532,6 @@ class Atom {
 
       let radius = this.shellRadii.at(i);
       push();
-      // Vòng quỹ đạo của lớp ngoài cùng sẽ bị ẩn khi các hiệu ứng đặc biệt được bật
       if (i < this.shells.length - 1 || (!isSphereVisible && state !== "overlap_spinning")) {
         drawSmoothCircle(radius);
       }
@@ -546,7 +546,6 @@ class Atom {
     for (let i = 0; i < this.shells.length; i++) {
       let radius = this.shellRadii.at(i);
 
-      // Ẩn electron ở lớp ngoài cùng khi các hiệu ứng đặc biệt được bật
       if (isSphereVisible && i === this.shells.length - 1 || state === "overlap_spinning" && i === this.shells.length - 1) {
         continue;
       }
@@ -556,12 +555,12 @@ class Atom {
         let ex, ey;
 
         if (state === "idle" || state === "animating") {
-          e.angle += slowSpinSpeed;
+          e.angle += slowSpinSpeed * (isElectronSpinning ? 1 : 0);
           ex = cos(e.angle) * radius;
           ey = sin(e.angle) * radius;
         } else if (state === "bonding" || state === "done") {
           if (i < this.shells.length - 1 && this.label === "Cl") {
-            e.angle += slowSpinSpeed;
+            e.angle += slowSpinSpeed * (isElectronSpinning ? 1 : 0);
             ex = cos(e.angle) * radius;
             ey = sin(e.angle) * radius;
           } else {
@@ -594,8 +593,8 @@ class Atom {
               ey = lerp(initialY, finalY, t_bonding);
             }
           }
-        } else if (state === "overlap_spinning" || isSphereVisible) { // Cập nhật logic để xử lý tất cả các trường hợp còn lại
-          e.angle += slowSpinSpeed;
+        } else if (state === "overlap_spinning" || isSphereVisible) {
+          e.angle += slowSpinSpeed * (isElectronSpinning ? 1 : 0);
           ex = cos(e.angle) * radius;
           ey = sin(e.angle) * radius;
         }
